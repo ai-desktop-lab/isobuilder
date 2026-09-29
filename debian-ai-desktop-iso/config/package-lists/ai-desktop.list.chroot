@@ -1,0 +1,8 @@
+task-ai-desktop
+icewm
+dbus-x11
+xfce4-terminal
+thunar
+gvfs
+gvfs-backends
+chromium

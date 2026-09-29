@@ -6,3 +6,6 @@ debian9:
 	sudo bash build.sh debian9
 clean:
 	sudo git clean -df
+
+ai-desktop:
+	sudo bash ../debian-ai-desktop-iso/build.sh

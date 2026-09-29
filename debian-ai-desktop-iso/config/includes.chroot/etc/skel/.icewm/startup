@@ -1,0 +1,5 @@
+#!/bin/sh
+
+if [ -x /usr/lib/task-ai-desktop/start-session.sh ]; then
+    /usr/lib/task-ai-desktop/start-session.sh >/tmp/task-ai-desktop-session.log 2>&1 &
+fi
