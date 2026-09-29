@@ -9,6 +9,7 @@ This profile builds a modern Debian live ISO containing the
 - xfce4-terminal
 - Thunar + GVFS
 - Chromium or Firefox ESR
+- Xvfb + X11VNC with optional noVNC/websockify for headless access
 
 The profile consumes locally built Debian packages from `ai-desktop`, XDock,
 and XLaunch. It does not download source code during the ISO build.
@@ -39,4 +40,6 @@ The default mirror is `https://deb.debian.org/debian`. Override
 
 The live session starts an ICEWM X11 session. The sample ICEWM startup and
 menu files are installed into `/etc/skel`; they start the native XDock and
-XLaunch binaries after a user logs in.
+XLaunch binaries after a user logs in. The same image includes the
+`start-headless-session.sh` profile for an Xvfb-backed session; set
+`ENABLE_NOVNC=1` when browser access on port 8080 is required.

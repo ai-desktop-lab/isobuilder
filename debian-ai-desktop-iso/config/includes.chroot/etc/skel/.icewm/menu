@@ -1,4 +1,4 @@
 # task-ai-desktop
-prog "XLaunch Menu" xlaunch /opt/task-ai-desktop/bin/XLaunch
+prog "XLaunch Menu" xlaunch /opt/task-ai-desktop/bin/xlaunch
 separator
 includeprog icewm-menu-fdo --no-sep-others --seps
