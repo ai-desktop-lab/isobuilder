@@ -1,0 +1,169 @@
+name: Custom OS ISO
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/custom-iso.yml'
+      - 'debian-ai-desktop-iso/**'
+      - 'rpm-custom-iso/**'
+      - 'debian-custom-iso/Makefile'
+  push:
+    branches: [main, master]
+    paths:
+      - '.github/workflows/custom-iso.yml'
+      - 'debian-ai-desktop-iso/**'
+      - 'rpm-custom-iso/**'
+      - 'debian-custom-iso/Makefile'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: OS profile to build
+        type: choice
+        required: true
+        default: all
+        options: [all, debian, ubuntu, fedora, rocky]
+      build_iso:
+        description: Run the network-heavy ISO builders
+        type: boolean
+        required: true
+        default: false
+      debian_deb_url:
+        description: URL of a Debian trixie .deb archive (required for Debian/all)
+        type: string
+        required: false
+        default: ''
+      ubuntu_deb_url:
+        description: URL of an Ubuntu noble .deb archive (required for Ubuntu/all)
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: custom-iso-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate ISO profiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n debian-ai-desktop-iso/build.sh
+          bash -n rpm-custom-iso/build.sh
+          test -f rpm-custom-iso/project/fedora-core.list
+          test -f rpm-custom-iso/project/rocky-core.list
+      - name: Validate workflow contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'target:' .github/workflows/custom-iso.yml
+          grep -q 'fedora' .github/workflows/custom-iso.yml
+          grep -q 'rocky' .github/workflows/custom-iso.yml
+
+  build-debian:
+    name: Build ${{ matrix.target }} ISO
+    needs: validate
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_iso && (inputs.target == 'all' || inputs.target == 'debian' || inputs.target == 'ubuntu') }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: debian
+            suite: trixie
+            mode: debian
+            mirror: https://deb.debian.org/debian
+            archive_areas: 'main contrib non-free non-free-firmware'
+          - target: ubuntu
+            suite: noble
+            mode: ubuntu
+            mirror: https://archive.ubuntu.com/ubuntu
+            archive_areas: 'main restricted universe multiverse'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Live ISO tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap xorriso squashfs-tools rsync curl
+      - name: Fetch target-compatible component packages
+        env:
+          TARGET: ${{ matrix.target }}
+          DEBIAN_DEB_URL: ${{ inputs.debian_deb_url }}
+          UBUNTU_DEB_URL: ${{ inputs.ubuntu_deb_url }}
+        run: |
+          set -euo pipefail
+          case "${TARGET}" in
+            debian) AI_DESKTOP_DEB_URL="${DEBIAN_DEB_URL}" ;;
+            ubuntu) AI_DESKTOP_DEB_URL="${UBUNTU_DEB_URL}" ;;
+            *) echo "unsupported Debian-family target: ${TARGET}" >&2; exit 2 ;;
+          esac
+          test -n "${AI_DESKTOP_DEB_URL}" || {
+            echo "workflow_dispatch requires the ${TARGET}_deb_url input when build_iso=true" >&2
+            exit 2
+          }
+          mkdir -p "$RUNNER_TEMP/ai-desktop-debs"
+          curl --fail --location --retry 3 "$AI_DESKTOP_DEB_URL" -o "$RUNNER_TEMP/ai-desktop-debs/packages.tar.gz"
+          tar -xzf "$RUNNER_TEMP/ai-desktop-debs/packages.tar.gz" -C "$RUNNER_TEMP/ai-desktop-debs"
+      - name: Build ISO
+        env:
+          AI_DESKTOP_DEB_DIR: ${{ runner.temp }}/ai-desktop-debs
+          DEBIAN_SUITE: ${{ matrix.suite }}
+          LB_MODE: ${{ matrix.mode }}
+          DEBIAN_MIRROR: ${{ matrix.mirror }}
+          DEBIAN_ARCHIVE_AREAS: ${{ matrix.archive_areas }}
+        run: ./debian-ai-desktop-iso/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: task-ai-desktop-${{ matrix.target }}-iso
+          path: debian-ai-desktop-iso/output/*.iso
+          if-no-files-found: error
+
+  build-rpm:
+    name: Build ${{ matrix.target }} ISO
+    needs: validate
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_iso && (inputs.target == 'all' || inputs.target == 'fedora' || inputs.target == 'rocky') }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: fedora
+            image: fedora:42
+            release: '42'
+          - target: rocky
+            image: rockylinux:9
+            release: '9'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build RPM ISO in native distribution container
+        env:
+          TARGET: ${{ matrix.target }}
+          IMAGE: ${{ matrix.image }}
+          RELEASE: ${{ matrix.release }}
+        run: |
+          set -euo pipefail
+          docker run --privileged --rm \
+            -e OS_FAMILY="$TARGET" \
+            -e OS_RELEASE="$RELEASE" \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace "$IMAGE" bash -ceu '
+              dnf -y install dnf-plugins-core
+              if [ "$OS_FAMILY" = rocky ]; then
+                dnf -y install epel-release || true
+                dnf config-manager --set-enabled crb || true
+              fi
+              dnf -y install lorax createrepo_c xorriso
+              ./rpm-custom-iso/build.sh
+            '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: task-ai-desktop-${{ matrix.target }}-iso
+          path: rpm-custom-iso/output/*.iso
+          if-no-files-found: error

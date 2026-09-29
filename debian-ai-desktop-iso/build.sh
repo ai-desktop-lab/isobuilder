@@ -6,6 +6,8 @@ BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build}"
 OUTPUT_DIR="${OUTPUT_DIR:-${SCRIPT_DIR}/output}"
 DEBIAN_SUITE="${DEBIAN_SUITE:-trixie}"
 DEBIAN_MIRROR="${DEBIAN_MIRROR:-https://deb.debian.org/debian}"
+LB_MODE="${LB_MODE:-debian}"
+DEBIAN_ARCHIVE_AREAS="${DEBIAN_ARCHIVE_AREAS:-main contrib non-free non-free-firmware}"
 AI_DESKTOP_DEB_DIR="${AI_DESKTOP_DEB_DIR:-}"
 
 if [[ -z "${AI_DESKTOP_DEB_DIR}" || ! -d "${AI_DESKTOP_DEB_DIR}" ]]; then
@@ -31,8 +33,8 @@ cp "${AI_DESKTOP_DEB_DIR}"/*.deb "${BUILD_DIR}/config/packages.chroot/"
 cd "${BUILD_DIR}"
 lb config \
     --distribution "${DEBIAN_SUITE}" \
-    --mode debian \
-    --archive-areas "main contrib non-free non-free-firmware" \
+    --mode "${LB_MODE}" \
+    --archive-areas "${DEBIAN_ARCHIVE_AREAS}" \
     --mirror-bootstrap "${DEBIAN_MIRROR}" \
     --mirror-chroot "${DEBIAN_MIRROR}" \
     --mirror-binary "${DEBIAN_MIRROR}" \
