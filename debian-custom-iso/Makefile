@@ -1,3 +1,6 @@
+AI_DESKTOP_DEB_DIR ?= $(CURDIR)/../debs
+DEBIAN_SUITE ?= trixie
+
 deepin:
 	sudo bash build.sh deepin
 debian8:
@@ -8,4 +11,5 @@ clean:
 	sudo git clean -df
 
 ai-desktop:
-	sudo bash ../debian-ai-desktop-iso/build.sh
+	sudo env AI_DESKTOP_DEB_DIR="$(AI_DESKTOP_DEB_DIR)" DEBIAN_SUITE="$(DEBIAN_SUITE)" \
+		bash ../debian-ai-desktop-iso/build.sh
