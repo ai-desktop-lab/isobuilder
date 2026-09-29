@@ -30,8 +30,12 @@ AI_DESKTOP_DEB_DIR=/path/to/debs \
   ./build.sh
 ```
 
-`AI_DESKTOP_DEB_DIR` must contain the `task-ai-desktop`, `xdock`, and
-`xlaunch` packages. The output is written to `output/task-ai-desktop-*.iso`.
+`AI_DESKTOP_DEB_DIR` must contain the runtime package family
+(`task-ai-desktop-core`, `task-ai-desktop-session`, `task-ai-desktop-xdock`,
+`task-ai-desktop-xlaunch`, `task-ai-desktop-apps`, `task-ai-desktop`, and
+`task-ai-desktop-vps`) plus `xdock` and `xlaunch`. The container package is
+consumed by the OCI Containerfile and is not required in the live ISO. The
+output is written to `output/task-ai-desktop-*.iso`.
 
 The default mirror is `https://deb.debian.org/debian`. Override
 `DEBIAN_MIRROR` for an internal mirror.
