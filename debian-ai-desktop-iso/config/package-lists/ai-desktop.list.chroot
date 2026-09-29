@@ -1,0 +1,11 @@
+task-ai-desktop
+task-ai-desktop-vps
+icewm
+dbus-x11
+novnc
+websockify
+xfce4-terminal
+thunar
+gvfs
+gvfs-backends
+chromium
