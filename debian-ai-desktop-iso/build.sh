@@ -9,10 +9,10 @@ DEBIAN_MIRROR="${DEBIAN_MIRROR:-https://deb.debian.org/debian}"
 AI_DESKTOP_DEB_DIR="${AI_DESKTOP_DEB_DIR:-}"
 
 if [[ -z "${AI_DESKTOP_DEB_DIR}" || ! -d "${AI_DESKTOP_DEB_DIR}" ]]; then
-    echo "AI_DESKTOP_DEB_DIR must point to a directory containing task-ai-desktop, xdock and xlaunch .deb files." >&2
+    echo "AI_DESKTOP_DEB_DIR must point to a directory containing task-ai-desktop, task-ai-desktop-vps, xdock and xlaunch .deb files." >&2
     exit 2
 fi
-for package in task-ai-desktop xdock xlaunch; do
+for package in task-ai-desktop task-ai-desktop-vps xdock xlaunch; do
     compgen -G "${AI_DESKTOP_DEB_DIR}/${package}_*.deb" >/dev/null || {
         echo "missing ${package} package in ${AI_DESKTOP_DEB_DIR}" >&2
         exit 2

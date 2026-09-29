@@ -30,8 +30,9 @@ AI_DESKTOP_DEB_DIR=/path/to/debs \
   ./build.sh
 ```
 
-`AI_DESKTOP_DEB_DIR` must contain the `task-ai-desktop`, `xdock`, and
-`xlaunch` packages. The output is written to `output/task-ai-desktop-*.iso`.
+`AI_DESKTOP_DEB_DIR` must contain the `task-ai-desktop`,
+`task-ai-desktop-vps`, `xdock`, and `xlaunch` packages. The output is written
+to `output/task-ai-desktop-*.iso`.
 
 The default mirror is `https://deb.debian.org/debian`. Override
 `DEBIAN_MIRROR` for an internal mirror.
