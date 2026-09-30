@@ -3,6 +3,8 @@
 This profile builds a modern Debian live ISO containing the
 `task-ai-desktop` ICEWM/X11 environment:
 
+- SDDM display manager with ICEWM as the default session
+- Xorg X11 display server
 - ICEWM session
 - XDock EWMH dock
 - XLaunch compact Menu and full-screen app launcher

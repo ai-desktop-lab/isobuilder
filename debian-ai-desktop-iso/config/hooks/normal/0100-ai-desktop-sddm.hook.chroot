@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+# live-build installs sddm, but the default-display-manager selection can
+# depend on which display manager was configured first. Make the ISO result
+# deterministic and keep systemd display-manager alias aligned.
+if [ -x /usr/bin/sddm ]; then
+    printf "%s\n" /usr/bin/sddm > /etc/X11/default-display-manager
+    mkdir -p /etc/systemd/system
+    ln -sf /lib/systemd/system/sddm.service /etc/systemd/system/display-manager.service
+    if command -v deb-systemd-helper >/dev/null 2>&1; then
+        deb-systemd-helper enable sddm.service || true
+    fi
+fi

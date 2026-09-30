@@ -1,5 +1,8 @@
 #!/bin/sh
 
+export XDOCK_BIN=/opt/task-ai-desktop/bin/xdock
+export XLAUNCH_BIN=/opt/task-ai-desktop/bin/xlaunch
+
 if [ -x /usr/lib/task-ai-desktop/start-session.sh ]; then
     /usr/lib/task-ai-desktop/start-session.sh >/tmp/task-ai-desktop-session.log 2>&1 &
 fi
