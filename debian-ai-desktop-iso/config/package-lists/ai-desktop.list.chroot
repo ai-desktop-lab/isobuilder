@@ -1,5 +1,6 @@
 xorg
-sddm
+lightdm
+lightdm-gtk-greeter
 task-ai-desktop
 task-ai-desktop-vps
 icewm
