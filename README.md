@@ -9,9 +9,9 @@ Fedora and Rocky Linux. CentOS is no longer a CI target; the old
 | Family | Builder | CI target |
 | --- | --- | --- |
 | Debian | `debian-ai-desktop-iso/build.sh` | Debian 13 / `trixie` |
-| Ubuntu | `debian-ai-desktop-iso/build.sh` | Ubuntu 24.04 / `noble` |
-| Fedora | `rpm-custom-iso/build.sh` | Fedora 42 (overrideable) |
-| Rocky | `rpm-custom-iso/build.sh` | Rocky 9 |
+| Ubuntu | `debian-ai-desktop-iso/build.sh` | Ubuntu 26.04 / `resolute` |
+| Fedora | `rpm-custom-iso/build.sh` | Fedora 43 (overrideable) |
+| Rocky | `rpm-custom-iso/build.sh` | Rocky 9 and 10 |
 
 The GitHub Actions workflow is manual for full ISO builds because ISO creation
 is network-heavy and requires package inputs. Pull requests run script and

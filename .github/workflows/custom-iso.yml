@@ -33,7 +33,7 @@ on:
         required: false
         default: ''
       ubuntu_deb_url:
-        description: URL of an Ubuntu noble .deb archive (required for Ubuntu/all)
+        description: URL of an Ubuntu resolute .deb archive (required for Ubuntu/all)
         type: string
         required: false
         default: ''
@@ -64,8 +64,11 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'target:' .github/workflows/custom-iso.yml
+          grep -q 'resolute' .github/workflows/custom-iso.yml
           grep -q 'fedora' .github/workflows/custom-iso.yml
+          grep -q 'fedora:43' .github/workflows/custom-iso.yml
           grep -q 'rocky' .github/workflows/custom-iso.yml
+          grep -q 'rockylinux:10' .github/workflows/custom-iso.yml
 
   build-debian:
     name: Build ${{ matrix.target }} ISO
@@ -82,7 +85,7 @@ jobs:
             mirror: https://deb.debian.org/debian
             archive_areas: 'main contrib non-free non-free-firmware'
           - target: ubuntu
-            suite: noble
+            suite: resolute
             mode: ubuntu
             mirror: https://archive.ubuntu.com/ubuntu
             archive_areas: 'main restricted universe multiverse'
@@ -135,16 +138,22 @@ jobs:
       matrix:
         include:
           - target: fedora
-            image: fedora:42
-            release: '42'
+            family: fedora
+            image: fedora:43
+            release: '43'
           - target: rocky
+            family: rocky
             image: rockylinux:9
             release: '9'
+          - target: rocky-10
+            family: rocky
+            image: rockylinux:10
+            release: '10'
     steps:
       - uses: actions/checkout@v4
       - name: Build RPM ISO in native distribution container
         env:
-          TARGET: ${{ matrix.target }}
+          TARGET: ${{ matrix.family }}
           IMAGE: ${{ matrix.image }}
           RELEASE: ${{ matrix.release }}
         run: |

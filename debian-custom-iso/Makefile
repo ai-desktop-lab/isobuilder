@@ -15,15 +15,19 @@ debian:
 		bash ../debian-ai-desktop-iso/build.sh
 
 ubuntu:
-	sudo env DEBIAN_SUITE=noble LB_MODE=ubuntu \
+	sudo env DEBIAN_SUITE=resolute LB_MODE=ubuntu \
 		DEBIAN_MIRROR=https://archive.ubuntu.com/ubuntu \
 		DEBIAN_ARCHIVE_AREAS='main restricted universe multiverse' \
 		bash ../debian-ai-desktop-iso/build.sh
 
 fedora:
-	sudo env OS_FAMILY=fedora OS_RELEASE=42 \
+	sudo env OS_FAMILY=fedora OS_RELEASE=43 \
 		bash ../rpm-custom-iso/build.sh
 
 rocky:
 	sudo env OS_FAMILY=rocky OS_RELEASE=9 \
+		bash ../rpm-custom-iso/build.sh
+
+rocky10:
+	sudo env OS_FAMILY=rocky OS_RELEASE=10 \
 		bash ../rpm-custom-iso/build.sh

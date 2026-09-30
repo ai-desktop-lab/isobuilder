@@ -19,10 +19,13 @@ CentOS mirrors.
 ## Build
 
 ```sh
-OS_FAMILY=fedora OS_RELEASE=42 \
+OS_FAMILY=fedora OS_RELEASE=43 \
   ./rpm-custom-iso/build.sh
 
 OS_FAMILY=rocky OS_RELEASE=9 \
+  ./rpm-custom-iso/build.sh
+
+OS_FAMILY=rocky OS_RELEASE=10 \
   ./rpm-custom-iso/build.sh
 ```
 
