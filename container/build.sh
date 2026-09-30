@@ -33,8 +33,8 @@ command -v "${CONTAINER_RUNTIME}" >/dev/null 2>&1 || {
 }
 
 mkdir -p "${OUTPUT_DIR}"
-rm -rf "${SCRIPT_DIR}/debs"
 mkdir -p "${SCRIPT_DIR}/debs"
+rm -f "${SCRIPT_DIR}/debs"/*.deb
 if [[ -n "${AI_DESKTOP_DEB_DIR}" ]]; then
     [[ -d "${AI_DESKTOP_DEB_DIR}" ]] || {
         echo "AI_DESKTOP_DEB_DIR is not a directory: ${AI_DESKTOP_DEB_DIR}" >&2
