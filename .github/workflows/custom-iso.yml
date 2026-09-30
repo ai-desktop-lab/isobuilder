@@ -1,4 +1,4 @@
-name: Custom OS ISO
+name: Custom OS Images
 
 on:
   pull_request:
@@ -6,6 +6,8 @@ on:
       - '.github/workflows/custom-iso.yml'
       - 'debian-ai-desktop-iso/**'
       - 'rpm-custom-iso/**'
+      - 'container/**'
+      - 'cloud/**'
       - 'debian-custom-iso/Makefile'
   push:
     branches: [main, master]
@@ -13,6 +15,8 @@ on:
       - '.github/workflows/custom-iso.yml'
       - 'debian-ai-desktop-iso/**'
       - 'rpm-custom-iso/**'
+      - 'container/**'
+      - 'cloud/**'
       - 'debian-custom-iso/Makefile'
   workflow_dispatch:
     inputs:
@@ -24,6 +28,16 @@ on:
         options: [all, debian, ubuntu, fedora, rocky]
       build_iso:
         description: Run the network-heavy ISO builders
+        type: boolean
+        required: true
+        default: false
+      build_container:
+        description: Build OCI container image archives
+        type: boolean
+        required: true
+        default: false
+      build_cloud:
+        description: Build qcow2 cloud VM images
         type: boolean
         required: true
         default: false
@@ -47,7 +61,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate ISO profiles
+    name: Validate image profiles
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,8 +71,13 @@ jobs:
           set -euo pipefail
           bash -n debian-ai-desktop-iso/build.sh
           bash -n rpm-custom-iso/build.sh
+          bash -n container/build.sh
+          bash -n container/start-container.sh
+          bash -n cloud/build.sh
           test -f rpm-custom-iso/project/fedora-core.list
           test -f rpm-custom-iso/project/rocky-core.list
+          test -f cloud/cloud-init/99-task-ai-desktop.cfg
+          test -f container/Containerfile
       - name: Validate workflow contract
         shell: bash
         run: |
@@ -69,6 +88,125 @@ jobs:
           grep -q 'fedora:43' .github/workflows/custom-iso.yml
           grep -q 'rocky' .github/workflows/custom-iso.yml
           grep -q 'rockylinux:10' .github/workflows/custom-iso.yml
+          grep -q 'build_container' .github/workflows/custom-iso.yml
+          grep -q 'build_cloud' .github/workflows/custom-iso.yml
+
+  build-container:
+    name: Build ${{ matrix.target }} container
+    needs: validate
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_container }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: debian
+            family: debian
+            release: '13'
+            image: debian:13
+          - target: ubuntu
+            family: ubuntu
+            release: '26.04'
+            image: ubuntu:26.04
+          - target: fedora
+            family: fedora
+            release: '43'
+            image: fedora:43
+          - target: rocky-9
+            family: rocky
+            release: '9'
+            image: rockylinux:9
+          - target: rocky-10
+            family: rocky
+            release: '10'
+            image: rockylinux:10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch optional Debian desktop packages
+        if: ${{ (inputs.target == 'all' || inputs.target == matrix.family || (inputs.target == 'rocky' && matrix.family == 'rocky')) && ((matrix.family == 'debian' && inputs.debian_deb_url != '') || (matrix.family == 'ubuntu' && inputs.ubuntu_deb_url != '')) }}
+        env:
+          TARGET: ${{ matrix.family }}
+          DEBIAN_DEB_URL: ${{ inputs.debian_deb_url }}
+          UBUNTU_DEB_URL: ${{ inputs.ubuntu_deb_url }}
+        run: |
+          set -euo pipefail
+          case "${TARGET}" in
+            debian) package_url="${DEBIAN_DEB_URL}" ;;
+            ubuntu) package_url="${UBUNTU_DEB_URL}" ;;
+            *) echo "unsupported package target: ${TARGET}" >&2; exit 2 ;;
+          esac
+          mkdir -p "$RUNNER_TEMP/ai-desktop-debs"
+          curl --fail --location --retry 3 "${package_url}" -o "$RUNNER_TEMP/ai-desktop-debs/packages.tar.gz"
+          tar -xzf "$RUNNER_TEMP/ai-desktop-debs/packages.tar.gz" -C "$RUNNER_TEMP/ai-desktop-debs"
+          echo "AI_DESKTOP_DEB_DIR=$RUNNER_TEMP/ai-desktop-debs" >> "$GITHUB_ENV"
+      - name: Build and export OCI archive
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.family || (inputs.target == 'rocky' && matrix.family == 'rocky') }}
+        env:
+          OS_FAMILY: ${{ matrix.family }}
+          OS_RELEASE: ${{ matrix.release }}
+          BASE_IMAGE: ${{ matrix.image }}
+          OUTPUT_DIR: ${{ github.workspace }}/container/output
+          IMAGE_TAG: task-ai-desktop:${{ matrix.target }}
+          CONTAINER_RUNTIME: docker
+        run: ./container/build.sh
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.family || (inputs.target == 'rocky' && matrix.family == 'rocky') }}
+        with:
+          name: task-ai-desktop-container-${{ matrix.target }}
+          path: container/output/*.oci.tar
+          if-no-files-found: error
+
+  build-cloud:
+    name: Build ${{ matrix.target }} cloud image
+    needs: validate
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_cloud }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: debian
+            family: debian
+            release: '13'
+            template: debian-13
+          - target: ubuntu
+            family: ubuntu
+            release: '26.04'
+            template: ubuntu-26.04
+          - target: fedora
+            family: fedora
+            release: '43'
+            template: fedora-43
+          - target: rocky-9
+            family: rocky
+            release: '9'
+            template: rocky-9
+          - target: rocky-10
+            family: rocky
+            release: '10'
+            template: rocky-10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cloud image tools
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.family || (inputs.target == 'rocky' && matrix.family == 'rocky') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libguestfs-tools qemu-utils
+      - name: Build qcow2 cloud image
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.family || (inputs.target == 'rocky' && matrix.family == 'rocky') }}
+        env:
+          OS_FAMILY: ${{ matrix.family }}
+          OS_RELEASE: ${{ matrix.release }}
+          CLOUD_TEMPLATE: ${{ matrix.template }}
+          OUTPUT_DIR: ${{ github.workspace }}/cloud/output
+          LIBGUESTFS_BACKEND: direct
+        run: sudo --preserve-env=OS_FAMILY,OS_RELEASE,CLOUD_TEMPLATE,OUTPUT_DIR,LIBGUESTFS_BACKEND ./cloud/build.sh
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.family || (inputs.target == 'rocky' && matrix.family == 'rocky') }}
+        with:
+          name: task-ai-desktop-cloud-${{ matrix.target }}
+          path: cloud/output/*.qcow2
+          if-no-files-found: error
 
   build-debian:
     name: Build ${{ matrix.target }} ISO
@@ -168,7 +306,7 @@ jobs:
                 dnf -y install epel-release || true
                 dnf config-manager --set-enabled crb || true
               fi
-              dnf -y install lorax createrepo_c xorriso
+              dnf -y install lorax createrepo_c xorriso syslinux
               ./rpm-custom-iso/build.sh
             '
       - uses: actions/upload-artifact@v4

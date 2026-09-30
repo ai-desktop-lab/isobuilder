@@ -79,8 +79,61 @@ mkdir -p "${BUILD_DIR}/lorax/Packages"
 cp "${BUILD_DIR}/Packages"/*.rpm "${BUILD_DIR}/lorax/Packages/"
 createrepo_c "${BUILD_DIR}/lorax/Packages"
 
-iso="${OUTPUT_DIR}/${PRODUCT_NAME}-${OS_FAMILY}-${OS_RELEASE}-${ARCH}.iso"
-xorriso -as mkisofs -r -J -joliet-long \
-    -V "${PRODUCT_NAME}-${OS_FAMILY}-${OS_RELEASE}" \
-    -o "${iso}" "${BUILD_DIR}/lorax"
+iso="${OUTPUT_DIR}/${PRODUCT_NAME}-${OS_FAMILY}-${OS_RELEASE}-${ARCH}-hybrid.iso"
+[[ -f "${BUILD_DIR}/lorax/isolinux/isolinux.bin" || -f "${BUILD_DIR}/lorax/images/efiboot.img" ]] || {
+    echo "lorax output has no BIOS or UEFI boot image" >&2
+    exit 1
+}
+
+iso_args=(
+    -as mkisofs
+    -r -J -joliet-long -iso-level 3
+    -V "${PRODUCT_NAME}-${OS_FAMILY}-${OS_RELEASE}"
+    -o "${iso}"
+)
+if [[ -f "${BUILD_DIR}/lorax/isolinux/isolinux.bin" ]]; then
+    iso_args+=(
+        -c isolinux/boot.cat
+        -b isolinux/isolinux.bin
+        -no-emul-boot
+        -boot-load-size 4
+        -boot-info-table
+    )
+fi
+if [[ -f "${BUILD_DIR}/lorax/images/efiboot.img" ]]; then
+    iso_args+=(
+        -eltorito-alt-boot
+        -e images/efiboot.img
+        -no-emul-boot
+    )
+fi
+
+isohybrid_mbr="${ISOHYBRID_MBR:-}"
+if [[ -z "${isohybrid_mbr}" ]]; then
+    for candidate in \
+        /usr/share/syslinux/isohdpfx.bin \
+        /usr/lib/ISOLINUX/isohdpfx.bin \
+        /usr/lib/syslinux/isohdpfx.bin; do
+        if [[ -f "${candidate}" ]]; then
+            isohybrid_mbr="${candidate}"
+            break
+        fi
+    done
+fi
+if [[ -n "${isohybrid_mbr}" ]]; then
+    iso_args+=(
+        -isohybrid-mbr "${isohybrid_mbr}"
+        -isohybrid-gpt-basdat
+    )
+fi
+
+xorriso "${iso_args[@]}" "${BUILD_DIR}/lorax"
+
+if [[ -z "${isohybrid_mbr}" ]]; then
+    command -v isohybrid >/dev/null 2>&1 || {
+        echo "isohybrid or a syslinux isohdpfx.bin is required for a USB-bootable ISO" >&2
+        exit 2
+    }
+    isohybrid --uefi "${iso}" 2>/dev/null || isohybrid "${iso}"
+fi
 echo "${iso}"

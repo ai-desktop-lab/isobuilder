@@ -50,5 +50,5 @@ if [[ -z "${iso}" ]]; then
     echo "live-build did not produce an ISO" >&2
     exit 1
 fi
-cp "${iso}" "${OUTPUT_DIR}/task-ai-desktop-${DEBIAN_SUITE}.iso"
-echo "${OUTPUT_DIR}/task-ai-desktop-${DEBIAN_SUITE}.iso"
+cp "${iso}" "${OUTPUT_DIR}/task-ai-desktop-${DEBIAN_SUITE}-hybrid.iso"
+echo "${OUTPUT_DIR}/task-ai-desktop-${DEBIAN_SUITE}-hybrid.iso"

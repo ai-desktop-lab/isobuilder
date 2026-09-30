@@ -1,0 +1,52 @@
+# syntax=docker/dockerfile:1
+
+ARG BASE_IMAGE=debian:13
+FROM ${BASE_IMAGE}
+
+ARG OS_FAMILY=debian
+ENV DEBIAN_FRONTEND=noninteractive \
+    DISPLAY=:99 \
+    QT_QPA_PLATFORM=xcb \
+    XDG_CURRENT_DESKTOP=ICEWM
+
+COPY debs/ /tmp/task-ai-desktop-debs/
+
+RUN if [ "${OS_FAMILY}" = debian ] || [ "${OS_FAMILY}" = ubuntu ]; then \
+      apt-get update && \
+      if compgen -G '/tmp/task-ai-desktop-debs/*.deb' >/dev/null; then \
+        apt-get install -y --no-install-recommends \
+          bash ca-certificates dbus-x11 fontconfig fonts-noto-core fonts-noto-cjk \
+          icewm novnc thunar tini xfce4-terminal websockify x11vnc xdg-utils xvfb \
+          /tmp/task-ai-desktop-debs/*.deb; \
+      else \
+        apt-get install -y --no-install-recommends \
+          bash ca-certificates dbus-x11 fontconfig fonts-noto-core fonts-noto-cjk \
+          icewm thunar tini xfce4-terminal x11vnc xdg-utils xvfb; \
+      fi && \
+      rm -rf /var/lib/apt/lists/* /tmp/task-ai-desktop-debs; \
+    elif [ "${OS_FAMILY}" = fedora ]; then \
+      dnf -y install \
+        bash ca-certificates dbus-x11 fontconfig google-noto-sans-cjk-fonts \
+        icewm thunar tini xfce4-terminal x11vnc xdg-utils xorg-x11-server-Xvfb; \
+      dnf clean all; \
+    elif [ "${OS_FAMILY}" = rocky ]; then \
+      dnf -y install epel-release || true; \
+      dnf -y install dnf-plugins-core || true; \
+      dnf config-manager --set-enabled crb || true; \
+      dnf -y install \
+        bash ca-certificates dbus-x11 fontconfig google-noto-sans-cjk-fonts \
+        icewm thunar tini xfce4-terminal x11vnc xdg-utils xorg-x11-server-Xvfb; \
+      dnf clean all; \
+    else \
+      echo "unsupported OS_FAMILY=${OS_FAMILY}" >&2; exit 2; \
+    fi
+
+RUN useradd --create-home --shell /bin/bash aiuser
+COPY start-container.sh /usr/local/bin/task-ai-desktop-start
+RUN chmod 0755 /usr/local/bin/task-ai-desktop-start && \
+    mkdir -p /home/aiuser/.icewm && \
+    chown -R aiuser:aiuser /home/aiuser
+
+USER aiuser
+WORKDIR /home/aiuser
+ENTRYPOINT ["/usr/local/bin/task-ai-desktop-start"]
