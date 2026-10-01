@@ -1,4 +1,10 @@
 
+# Deprecated
+
+This CentOS 7 profile is retained as historical source material only and is no
+longer used by CI. New RPM ISO builds must use
+[`../rpm-custom-iso`](../rpm-custom-iso/README.md) with Fedora or Rocky Linux.
+
 # 使用说明
 
 centos7-custom-iso-build 是一个能快速定制centos7 iso 的脚本

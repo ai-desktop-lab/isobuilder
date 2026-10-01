@@ -1,0 +1,8 @@
+bash
+coreutils
+dbus-x11
+icewm
+thunar
+xfce4-terminal
+xorg-x11-server-Xvfb
+x11vnc

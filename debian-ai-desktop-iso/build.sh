@@ -6,6 +6,8 @@ BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build}"
 OUTPUT_DIR="${OUTPUT_DIR:-${SCRIPT_DIR}/output}"
 DEBIAN_SUITE="${DEBIAN_SUITE:-trixie}"
 DEBIAN_MIRROR="${DEBIAN_MIRROR:-https://deb.debian.org/debian}"
+LB_MODE="${LB_MODE:-debian}"
+DEBIAN_ARCHIVE_AREAS="${DEBIAN_ARCHIVE_AREAS:-main contrib non-free non-free-firmware}"
 AI_DESKTOP_DEB_DIR="${AI_DESKTOP_DEB_DIR:-}"
 DISPLAY_MANAGER="${DISPLAY_MANAGER:-lightdm}"
 DESKTOP_CORE="${DESKTOP_CORE:-icewm}"
@@ -83,7 +85,18 @@ command -v lb >/dev/null 2>&1 || {
     exit 2
 }
 cd "${BUILD_DIR}"
-lb config --distribution "${DEBIAN_SUITE}" --mode debian --archive-areas "main contrib non-free non-free-firmware" --mirror-bootstrap "${DEBIAN_MIRROR}" --mirror-chroot "${DEBIAN_MIRROR}" --mirror-binary "${DEBIAN_MIRROR}" --binary-images iso-hybrid --debian-installer live --bootappend-live "boot=live components username=aiuser" --iso-application "task-ai-desktop" --iso-volume "TASK-AI-DESKTOP"
+lb config \
+    --distribution "${DEBIAN_SUITE}" \
+    --mode "${LB_MODE}" \
+    --archive-areas "${DEBIAN_ARCHIVE_AREAS}" \
+    --mirror-bootstrap "${DEBIAN_MIRROR}" \
+    --mirror-chroot "${DEBIAN_MIRROR}" \
+    --mirror-binary "${DEBIAN_MIRROR}" \
+    --binary-images iso-hybrid \
+    --debian-installer live \
+    --bootappend-live "boot=live components username=aiuser" \
+    --iso-application "task-ai-desktop" \
+    --iso-volume "TASK-AI-DESKTOP"
 lb build
 
 iso="$(find . -maxdepth 1 -type f -name '*.iso' -print -quit)"
@@ -91,5 +104,5 @@ if [[ -z "${iso}" ]]; then
     echo "live-build did not produce an ISO" >&2
     exit 1
 fi
-cp "${iso}" "${OUTPUT_DIR}/task-ai-desktop-${DEBIAN_SUITE}-${DISPLAY_MANAGER}-${DESKTOP_CORE}.iso"
-echo "${OUTPUT_DIR}/task-ai-desktop-${DEBIAN_SUITE}-${DISPLAY_MANAGER}-${DESKTOP_CORE}.iso"
+cp "${iso}" "${OUTPUT_DIR}/task-ai-desktop-${DEBIAN_SUITE}-${DISPLAY_MANAGER}-${DESKTOP_CORE}-hybrid.iso"
+echo "${OUTPUT_DIR}/task-ai-desktop-${DEBIAN_SUITE}-${DISPLAY_MANAGER}-${DESKTOP_CORE}-hybrid.iso"

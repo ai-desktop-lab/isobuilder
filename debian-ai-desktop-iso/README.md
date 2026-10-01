@@ -32,6 +32,10 @@ AI_DESKTOP_DEB_DIR=/path/to/debs \
   ./build.sh
 ```
 
+`AI_DESKTOP_DEB_DIR` contains task-ai-desktop-core and xlaunch; ICEWM also
+requires xdock, while KDE requires task-ai-desktop-kde-plasma-core. Optional
+compatibility aliases can be included. Output is an iso-hybrid USB/install
+image at `output/task-ai-desktop-<suite>-<dm>-<core>-hybrid.iso`.
 
 The default mirror is the Debian public mirror. Set DEBIAN_MIRROR to use an
 internal mirror.
