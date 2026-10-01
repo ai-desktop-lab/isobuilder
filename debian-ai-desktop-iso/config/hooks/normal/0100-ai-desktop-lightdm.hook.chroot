@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+# Make the ISO display-manager selection deterministic after package install.
+if [ -x /usr/sbin/lightdm ]; then
+    printf "%s\n" /usr/sbin/lightdm > /etc/X11/default-display-manager
+    mkdir -p /etc/systemd/system
+    ln -sf /lib/systemd/system/lightdm.service /etc/systemd/system/display-manager.service
+    if command -v deb-systemd-helper >/dev/null 2>&1; then
+        deb-systemd-helper enable lightdm.service || true
+    fi
+fi

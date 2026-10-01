@@ -3,6 +3,8 @@
 This profile builds a modern Debian live ISO containing the
 `task-ai-desktop` ICEWM/X11 environment:
 
+- LightDM with GTK Greeter and ICEWM as the default session
+- Xorg X11 display server
 - ICEWM session
 - XDock EWMH dock
 - XLaunch compact Menu and full-screen app launcher
@@ -30,18 +32,32 @@ AI_DESKTOP_DEB_DIR=/path/to/debs \
   ./build.sh
 ```
 
-`AI_DESKTOP_DEB_DIR` must contain the runtime package family
-(`task-ai-desktop-core`, `task-ai-desktop-session`, `task-ai-desktop-xdock`,
-`task-ai-desktop-xlaunch`, `task-ai-desktop-apps`, `task-ai-desktop`, and
-`task-ai-desktop-vps`) plus `xdock` and `xlaunch`. The container package is
-consumed by the OCI Containerfile and is not required in the live ISO. The
-output is written to `output/task-ai-desktop-*-hybrid.iso`. The `iso-hybrid`
-profile can be written directly to a USB device and still boots the installer.
+`AI_DESKTOP_DEB_DIR` contains task-ai-desktop-core and xlaunch; ICEWM also
+requires xdock, while KDE requires task-ai-desktop-kde-plasma-core. Optional
+compatibility aliases can be included. Output is an iso-hybrid USB/install
+image at `output/task-ai-desktop-<suite>-<dm>-<core>-hybrid.iso`.
 
-The default mirror is `https://deb.debian.org/debian`. Override
-`DEBIAN_MIRROR` for an internal mirror.
+The default mirror is the Debian public mirror. Set DEBIAN_MIRROR to use an
+internal mirror.
+
+The ISO profile is unified. Set DISPLAY_MANAGER to lightdm (the default) or
+sddm; both launch the ICEWM session. Set DESKTOP_CORE to icewm (the default)
+or kde. The kde option adds task-ai-desktop-kde-plasma-core, starts XLaunch
+through KDE autostart, and leaves XDock optional.
+
+Examples:
+
+~~~sh
+DISPLAY_MANAGER=lightdm DESKTOP_CORE=icewm ./build.sh
+DISPLAY_MANAGER=sddm DESKTOP_CORE=icewm ./build.sh
+DISPLAY_MANAGER=lightdm DESKTOP_CORE=kde ./build.sh
+~~~
 
 ## Runtime
+
+The ISO enables LightDM with lightdm-gtk-greeter as the default display
+manager and selects ICEWM for the user session. XLaunch provides the compact
+application menu and XDock starts as the low-power bottom dock.
 
 The live session starts an ICEWM X11 session. The sample ICEWM startup and
 menu files are installed into `/etc/skel`; they start the native XDock and

@@ -10,7 +10,7 @@ Fedora and Rocky Linux and emits three deployment formats. CentOS is no longer a
 | --- | --- | --- |
 | OCI container image | `container/build.sh` | `.oci.tar` image archive |
 | Cloud VM image | `cloud/build.sh` | compressed `.qcow2` |
-| USB/install ISO | Debian live-build or RPM lorax profile | `*-hybrid.iso` |
+| USB/install ISO | Debian/Ubuntu live-build; experimental RPM lorax installer | `*-hybrid.iso` |
 
 ## Profiles
 
@@ -37,3 +37,15 @@ See [`.github/workflows/custom-iso.yml`](.github/workflows/custom-iso.yml),
 [`cloud/README.md`](cloud/README.md),
 [`debian-ai-desktop-iso/README.md`](debian-ai-desktop-iso/README.md) and
 [`rpm-custom-iso/README.md`](rpm-custom-iso/README.md).
+
+## Acceptance status
+
+This PR supplies build definitions and lightweight CI validation, not built
+release images. Debian/Ubuntu ISO dispatch supports `display_manager` and
+`desktop_core`, defaults to LightDM/ICEWM, and requires compatible component
+packages. Fedora/Rocky currently have a lorax **installer** scaffold, not a
+validated Live desktop/install workflow. Native XDock/XLaunch RPM packaging
+and Fedora/Rocky Live desktop acceptance remain follow-up work. Cloud images
+require a matching virt-builder template in the configured catalog; template
+availability is not guaranteed. OCI builds without component packages provide
+only the baseline desktop scaffold, not the full AI Desktop shell.

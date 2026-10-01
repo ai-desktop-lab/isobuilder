@@ -11,9 +11,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 COPY debs/ /tmp/task-ai-desktop-debs/
 
-RUN if [ "${OS_FAMILY}" = debian ] || [ "${OS_FAMILY}" = ubuntu ]; then \
+RUN set -eu; if [ "${OS_FAMILY}" = debian ] || [ "${OS_FAMILY}" = ubuntu ]; then \
       apt-get update && \
-      if compgen -G '/tmp/task-ai-desktop-debs/*.deb' >/dev/null; then \
+      if [ -n "$(find /tmp/task-ai-desktop-debs -maxdepth 1 -name '*.deb' -print -quit)" ]; then \
         apt-get install -y --no-install-recommends \
           bash ca-certificates dbus-x11 fontconfig fonts-noto-core fonts-noto-cjk \
           icewm novnc thunar tini xfce4-terminal websockify x11vnc xdg-utils xvfb \

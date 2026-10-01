@@ -41,6 +41,16 @@ on:
         type: boolean
         required: true
         default: false
+      display_manager:
+        description: Debian/Ubuntu ISO display manager
+        type: choice
+        default: lightdm
+        options: [lightdm, sddm]
+      desktop_core:
+        description: Debian/Ubuntu ISO desktop core
+        type: choice
+        default: icewm
+        options: [icewm, kde]
       debian_deb_url:
         description: URL of a Debian trixie .deb archive (required for Debian/all)
         type: string
@@ -139,6 +149,11 @@ jobs:
           curl --fail --location --retry 3 "${package_url}" -o "$RUNNER_TEMP/ai-desktop-debs/packages.tar.gz"
           tar -xzf "$RUNNER_TEMP/ai-desktop-debs/packages.tar.gz" -C "$RUNNER_TEMP/ai-desktop-debs"
           echo "AI_DESKTOP_DEB_DIR=$RUNNER_TEMP/ai-desktop-debs" >> "$GITHUB_ENV"
+      - name: Install OCI export tool
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.family }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
       - name: Build and export OCI archive
         if: ${{ inputs.target == 'all' || inputs.target == matrix.family || (inputs.target == 'rocky' && matrix.family == 'rocky') }}
         env:
@@ -230,10 +245,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Live ISO tools
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.target }}
         run: |
           sudo apt-get update
           sudo apt-get install -y live-build debootstrap xorriso squashfs-tools rsync curl
       - name: Fetch target-compatible component packages
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.target }}
         env:
           TARGET: ${{ matrix.target }}
           DEBIAN_DEB_URL: ${{ inputs.debian_deb_url }}
@@ -253,14 +270,18 @@ jobs:
           curl --fail --location --retry 3 "$AI_DESKTOP_DEB_URL" -o "$RUNNER_TEMP/ai-desktop-debs/packages.tar.gz"
           tar -xzf "$RUNNER_TEMP/ai-desktop-debs/packages.tar.gz" -C "$RUNNER_TEMP/ai-desktop-debs"
       - name: Build ISO
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.target }}
         env:
+          DISPLAY_MANAGER: ${{ inputs.display_manager }}
+          DESKTOP_CORE: ${{ inputs.desktop_core }}
           AI_DESKTOP_DEB_DIR: ${{ runner.temp }}/ai-desktop-debs
           DEBIAN_SUITE: ${{ matrix.suite }}
           LB_MODE: ${{ matrix.mode }}
           DEBIAN_MIRROR: ${{ matrix.mirror }}
           DEBIAN_ARCHIVE_AREAS: ${{ matrix.archive_areas }}
-        run: ./debian-ai-desktop-iso/build.sh
+        run: sudo --preserve-env=DISPLAY_MANAGER,DESKTOP_CORE,AI_DESKTOP_DEB_DIR,DEBIAN_SUITE,LB_MODE,DEBIAN_MIRROR,DEBIAN_ARCHIVE_AREAS ./debian-ai-desktop-iso/build.sh
       - uses: actions/upload-artifact@v4
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.target }}
         with:
           name: task-ai-desktop-${{ matrix.target }}-iso
           path: debian-ai-desktop-iso/output/*.iso
@@ -290,6 +311,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build RPM ISO in native distribution container
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.family }}
         env:
           TARGET: ${{ matrix.family }}
           IMAGE: ${{ matrix.image }}
@@ -310,6 +332,7 @@ jobs:
               ./rpm-custom-iso/build.sh
             '
       - uses: actions/upload-artifact@v4
+        if: ${{ inputs.target == 'all' || inputs.target == matrix.family }}
         with:
           name: task-ai-desktop-${{ matrix.target }}-iso
           path: rpm-custom-iso/output/*.iso

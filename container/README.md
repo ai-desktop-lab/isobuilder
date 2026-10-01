@@ -20,3 +20,7 @@ target-compatible `.deb` directory used by the ISO build.
 
 The output is written to `container/output/*.oci.tar`. Load it with `podman
 load` or `docker load`.
+
+Docker builds require skopeo for true OCI archive export; Podman can export
+OCI directly. ARCH selects the container build platform. Native component
+packages are required for a complete XDock/XLaunch desktop.

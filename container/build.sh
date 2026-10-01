@@ -47,6 +47,7 @@ if [[ -n "${AI_DESKTOP_DEB_DIR}" ]]; then
     cp "${AI_DESKTOP_DEB_DIR}"/*.deb "${SCRIPT_DIR}/debs/"
 fi
 "${CONTAINER_RUNTIME}" build \
+    --platform "linux/${ARCH}" \
     --file "${SCRIPT_DIR}/Containerfile" \
     --build-arg "BASE_IMAGE=${BASE_IMAGE}" \
     --build-arg "OS_FAMILY=${OS_FAMILY}" \
@@ -57,7 +58,10 @@ archive="${OUTPUT_DIR}/${PRODUCT_NAME}-container-${OS_FAMILY}-${OS_RELEASE}-${AR
 if [[ "${CONTAINER_RUNTIME}" == podman ]]; then
     "${CONTAINER_RUNTIME}" save --format oci-archive --output "${archive}" "${IMAGE_TAG}"
 else
-    # Docker's save archive is accepted by Docker, Podman and OCI import tools.
-    "${CONTAINER_RUNTIME}" save --output "${archive}" "${IMAGE_TAG}"
+    command -v skopeo >/dev/null 2>&1 || {
+        echo "skopeo is required to export Docker images as OCI archives" >&2
+        exit 2
+    }
+    skopeo copy --format oci "docker-daemon:${IMAGE_TAG}" "oci-archive:${archive}:${IMAGE_TAG}"
 fi
 echo "${archive}"

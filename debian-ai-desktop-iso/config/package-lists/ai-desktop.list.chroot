@@ -1,5 +1,7 @@
-task-ai-desktop
-task-ai-desktop-vps
+xorg
+lightdm
+lightdm-gtk-greeter
+task-ai-desktop-core
 icewm
 dbus-x11
 novnc

@@ -1,0 +1,9 @@
+# Low-power ICEWM defaults for the ai-desktop ISO.
+OpaqueMove=0
+OpaqueResize=0
+MinimizeToDesktop=0
+QuickSwitchToMinimized=1
+TaskBarShowWorkspaces=1
+TaskBarShowWindows=1
+TaskBarShowClock=1
+TaskBarShowMailboxStatus=0
