@@ -61,9 +61,20 @@ on:
         type: string
         required: false
         default: ''
+      publish_object_storage:
+        description: Publish successful build artifacts to S3-compatible object storage
+        type: boolean
+        required: true
+        default: false
+      object_storage_prefix:
+        description: Object key prefix below the configured bucket
+        type: string
+        required: true
+        default: isobuilder
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: custom-iso-${{ github.workflow }}-${{ github.ref }}
@@ -337,3 +348,57 @@ jobs:
           name: task-ai-desktop-${{ matrix.target }}-iso
           path: rpm-custom-iso/output/*.iso
           if-no-files-found: error
+
+  publish-object-storage:
+    name: Publish build artifacts to object storage
+    needs: [build-container, build-cloud, build-debian, build-rpm]
+    if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.publish_object_storage && (inputs.build_container || inputs.build_cloud || inputs.build_iso) && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    runs-on: ubuntu-24.04
+    env:
+      OBJECT_STORAGE_BUCKET: ${{ secrets.OBJECT_STORAGE_BUCKET }}
+      OBJECT_STORAGE_ENDPOINT: ${{ secrets.OBJECT_STORAGE_ENDPOINT }}
+      OBJECT_STORAGE_REGION: ${{ secrets.OBJECT_STORAGE_REGION || 'us-east-1' }}
+      OBJECT_STORAGE_PREFIX: ${{ inputs.object_storage_prefix }}
+    steps:
+      - name: Validate object storage configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OBJECT_STORAGE_BUCKET}" || {
+            echo 'OBJECT_STORAGE_BUCKET secret is required when publish_object_storage=true' >&2
+            exit 2
+          }
+          test -n "${OBJECT_STORAGE_PREFIX}" || {
+            echo 'object_storage_prefix must not be empty' >&2
+            exit 2
+          }
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.OBJECT_STORAGE_REGION }}
+          role-to-assume: ${{ secrets.OBJECT_STORAGE_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.OBJECT_STORAGE_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.OBJECT_STORAGE_SECRET_ACCESS_KEY }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: task-ai-desktop-*
+          path: ${{ runner.temp }}/isobuilder-artifacts
+
+      - name: Publish artifacts and checksums
+        shell: bash
+        env:
+          AWS_ENDPOINT_URL: ${{ env.OBJECT_STORAGE_ENDPOINT }}
+        run: |
+          set -euo pipefail
+          root="${RUNNER_TEMP}/isobuilder-artifacts"
+          release="${OBJECT_STORAGE_PREFIX%/}/${GITHUB_REF_NAME}/${GITHUB_SHA}/${GITHUB_RUN_ID}"
+          find "$root" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > "$root/SHA256SUMS"
+          aws_args=(--region "${OBJECT_STORAGE_REGION}")
+          if [[ -n "${AWS_ENDPOINT_URL}" ]]; then
+            aws_args+=(--endpoint-url "${AWS_ENDPOINT_URL}")
+          fi
+          aws s3 sync "$root" "s3://${OBJECT_STORAGE_BUCKET}/${release}" "${aws_args[@]}" --only-show-errors
+          echo "Published to s3://${OBJECT_STORAGE_BUCKET}/${release}"
